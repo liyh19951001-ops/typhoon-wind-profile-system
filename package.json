@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "台风风廓线模型参数查询系统",
   "type": "module",
+  "homepage": "https://liyh19951001-ops.github.io/typhoon-wind-profile-system",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
