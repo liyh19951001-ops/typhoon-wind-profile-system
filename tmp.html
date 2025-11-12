@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台风风廓线模型参数查询系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+    
+    /* 静态图片样式 */
+    .static-images {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -2;
+        pointer-events: none;
+    }
+    
+    .typhoon-image {
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        opacity: 0.08;
+        filter: blur(2px);
+    }
+    
+    .typhoon-image:nth-child(1) {
+        top: 10%;
+        left: 5%;
+    }
+    
+    .typhoon-image:nth-child(2) {
+        top: 25%;
+        right: 8%;
+    }
+    
+    .wind-turbine-image {
+        position: absolute;
+        width: 120px;
+        height: 180px;
+        opacity: 0.06;
+        filter: blur(1px);
+    }
+    
+    .wind-turbine-image:nth-child(3) {
+        bottom: 20%;
+        left: 12%;
+    }
+    
+    .wind-turbine-image:nth-child(4) {
+        top: 35%;
+        left: 20%;
+    }
+    
+    .drone-image {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        opacity: 0.05;
+        filter: blur(1px);
+    }
+    
+    .drone-image:nth-child(5) {
+        top: 60%;
+        right: 15%;
+    }
+    
+    .drone-image:nth-child(6) {
+        bottom: 30%;
+        right: 25%;
+    }
+    
+    /* 访问人数记录样式 */
+    .visitor-counter {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 12px 20px;
+        border-radius: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        z-index: 1000;
+        font-size: 14px;
+        font-weight: 600;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .visitor-counter:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .visitor-counter i {
+        color: #3498db;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    body {
+        font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
+        min-height: 100vh;
+        padding: 20px;
+        color: #333;
+        line-height: 1.6;
+        position: relative;
+        overflow-x: hidden;
+    }
+    
+    /* 风力发电主题背景元素 */
+    .wind-turbine {
+        position: absolute;
+        width: 60px;
+        height: 120px;
+        z-index: -1;
+        opacity: 0.1;
+        animation: windRotation 8s linear infinite;
+    }
+    
+    .wind-turbine:nth-child(1) { top: 10%; left: 5%; animation-delay: 0s; }
+    .wind-turbine:nth-child(2) { top: 30%; right: 8%; animation-delay: 2s; }
+    .wind-turbine:nth-child(3) { bottom: 20%; left: 15%; animation-delay: 4s; }
+    
+    @keyframes windRotation {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* 低空经济元素 */
+    .drone {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        z-index: -1;
+        opacity: 0.05;
+        animation: droneFlight 15s linear infinite;
+    }
+    
+    .drone:nth-child(4) { top: 15%; right: 15%; animation-delay: 1s; }
+    .drone:nth-child(5) { bottom: 25%; right: 20%; animation-delay: 5s; }
+    
+    @keyframes droneFlight {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(100px, 50px) rotate(90deg); }
+        50% { transform: translate(200px, -30px) rotate(180deg); }
+        75% { transform: translate(100px, -80px) rotate(270deg); }
+        100% { transform: translate(0, 0) rotate(360deg); }
+    }
+    
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .header {
+        background: linear-gradient(135deg, #1a237e 0%, #283593 30%, #3949ab 70%, #5c6bc0 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: rotate 20s linear infinite;
+    }
+    
+    @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .header-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 15px;
+        font-weight: 700;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .header p {
+        font-size: 1.2em;
+        opacity: 0.95;
+        margin-bottom: 20px;
+    }
+    
+    .theme-tags {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 20px;
+        font-size: 1.1em;
+    }
+    
+    .theme-text {
+        color: white;
+        font-weight: 600;
+    }
+    
+    .content {
+        padding: 40px 30px;
+    }
+    
+    .query-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 50%, #e8f5e8 100%);
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        border-left: 6px solid #4caf50;
+        box-shadow: 0 8px 25px rgba(76, 175, 80, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .query-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #4caf50, #2196f3, #ff9800);
+    }
+    
+    /* 查询结果区域样式 */
+    .result-section {
+        background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        border-left: 6px solid #2196f3;
+        box-shadow: 0 8px 25px rgba(33, 150, 243, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .result-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #2196f3, #673ab7, #9c27b0);
+    }
+    
+    /* 规范参考区域样式 */
+    .reference-section {
+        background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        border-left: 6px solid #2196f3;
+        box-shadow: 0 8px 25px rgba(33, 150, 243, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .reference-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #ff9800, #ff5722, #f44336);
+    }
+    
+    .query-type {
+        display: flex;
+        margin-bottom: 25px;
+        border-bottom: 2px solid #e0e0e0;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 10px 10px 0 0;
+        padding: 5px;
+    }
+    
+    .query-tab {
+        padding: 12px 24px;
+        cursor: pointer;
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-radius: 8px 8px 0 0;
+        margin-right: 8px;
+        transition: all 0.4s ease;
+        font-weight: 600;
+        color: #1976d2;
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .query-tab::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transition: left 0.6s ease;
+    }
+    
+    .query-tab:hover::before {
+        left: 100%;
+    }
+    
+    .query-tab:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(25, 118, 210, 0.3);
+        border-color: #1976d2;
+    }
+    
+    .query-tab.active {
+        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+        color: white;
+        border-color: #1976d2;
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+    }
+    
+    .query-form {
+        display: none;
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    .query-form.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .form-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .form-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #2c3e50;
+    }
+    
+    select, button {
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+    }
+    
+    select:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    button {
+        background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        margin-top: 15px;
+        padding: 14px 28px;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+    
+    button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.6s ease;
+    }
+    
+    button:hover::before {
+        left: 100%;
+    }
+    
+    button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(76, 175, 80, 0.5);
+        background: linear-gradient(135deg, #45a049 0%, #4caf50 100%);
+    }
+    
+    button:active {
+        transform: translateY(-1px);
+    }
+    
+    .result-section {
+        display: none;
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        border: 2px solid #e3f2fd;
+        margin-top: 20px;
+    }
+    
+    .result-header {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .parameter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .parameter-card {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #3498db;
+    }
+    
+    .parameter-name {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .parameter-value {
+        color: #e74c3c;
+        font-size: 1.1em;
+        font-weight: 600;
+    }
+    
+    .model-info {
+        background: #e8f5e8;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 4px solid #27ae60;
+    }
+    
+    .formula-section {
+        background: #f0f8ff;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        border-left: 4px solid #4a90e2;
+    }
+    
+    .formula-title {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+    
+    .formula {
+        font-family: 'Times New Roman', serif;
+        font-size: 1.4em;
+        text-align: center;
+        padding: 15px;
+        background: white;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+    
+    .formula-explanation {
+        font-size: 0.9em;
+        color: #555;
+        margin-top: 10px;
+    }
+    
+    .reference-section {
+        background: #fff9e6;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        border-left: 4px solid #f39c12;
+    }
+    
+    .reference-title {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+    
+    .no-data {
+        text-align: center;
+        color: #7f8c8d;
+        padding: 40px;
+        font-style: italic;
+    }
+    
+    .data-source {
+        font-size: 0.9em;
+        color: #7f8c8d;
+        margin-top: 10px;
+        font-style: italic;
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 3px solid #3498db;
+    }
+    
+    /* 风力发电和低空经济特色动画 */
+    .wind-energy-icon {
+        color: #4caf50;
+        animation: windFlow 3s ease-in-out infinite;
+    }
+    
+    @keyframes windFlow {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    .drone-icon {
+        color: #2196f3;
+        animation: droneHover 4s ease-in-out infinite;
+    }
+    
+    @keyframes droneHover {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+    }
+    
+    /* 风力发电和低空经济特色卡片 */
+    .feature-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 15px 0;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+    
+    .feature-card.wind {
+        border-left: 4px solid #4caf50;
+    }
+    
+    .feature-card.drone {
+        border-left: 4px solid #2196f3;
+    }
+    
+    @media (max-width: 768px) {
+        .form-group {
+            grid-template-columns: 1fr;
+        }
+        
+        .parameter-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .formula {
+            font-size: 1.1em;
+            overflow-x: auto;
+        }
+        
+        .query-type {
+            flex-direction: column;
+        }
+        
+        .query-tab {
+            margin-bottom: 5px;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+        }
+        
+        .theme-tags {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .application-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .header {
+            padding: 25px 15px;
+        }
+        
+        .content {
+            padding: 20px 15px;
+        }
+        
+        .query-section {
+            padding: 20px;
+        }
+        
+        .header h1 {
+            font-size: 1.5em;
+        }
+    }
+</style>
+</head>
+<body>
+    <!-- 静态背景图片元素 -->
+    <div class="static-images">
+        <!-- 台风图片 -->
+        <div class="typhoon-image">
+            <svg viewBox="0 0 200 200" fill="#8B0000">
+                <circle cx="100" cy="100" r="80" fill="none" stroke="#B22222" stroke-width="10" stroke-dasharray="5,10"/>
+                <circle cx="100" cy="100" r="60" fill="none" stroke="#DC143C" stroke-width="8" stroke-dasharray="3,7"/>
+                <circle cx="100" cy="100" r="40" fill="none" stroke="#FF4500" stroke-width="6" stroke-dasharray="2,5"/>
+                <circle cx="100" cy="100" r="20" fill="#FF6347" stroke="#FF0000" stroke-width="3"/>
+                <path d="M100 20 Q 120 40, 100 60 Q 80 40, 100 20" fill="#FFA07A"/>
+                <path d="M100 140 Q 120 160, 100 180 Q 80 160, 100 140" fill="#FFA07A"/>
+                <path d="M20 100 Q 40 120, 60 100 Q 40 80, 20 100" fill="#FFA07A"/>
+                <path d="M180 100 Q 160 120, 140 100 Q 160 80, 180 100" fill="#FFA07A"/>
+            </svg>
+        </div>
+        
+        <div class="typhoon-image">
+            <svg viewBox="0 0 200 200" fill="#8B0000">
+                <circle cx="100" cy="100" r="70" fill="none" stroke="#CD5C5C" stroke-width="8" stroke-dasharray="4,8"/>
+                <circle cx="100" cy="100" r="50" fill="none" stroke="#F08080" stroke-width="6" stroke-dasharray="3,6"/>
+                <circle cx="100" cy="100" r="30" fill="#FFB6C1" stroke="#FF69B4" stroke-width="4"/>
+                <path d="M100 30 Q 115 50, 100 70 Q 85 50, 100 30" fill="#FFC0CB"/>
+                <path d="M100 130 Q 115 150, 100 170 Q 85 150, 100 130" fill="#FFC0CB"/>
+                <path d="M30 100 Q 50 115, 70 100 Q 50 85, 30 100" fill="#FFC0CB"/>
+                <path d="M170 100 Q 150 115, 130 100 Q 150 85, 170 100" fill="#FFC0CB"/>
+            </svg>
+        </div>
+        
+        <!-- 风力发电机图片 -->
+        <div class="wind-turbine-image">
+            <svg viewBox="0 0 120 180" fill="#4caf50">
+                <!-- 塔架 -->
+                <rect x="55" y="20" width="10" height="140" fill="#607d8b" rx="2"/>
+                <!-- 发电机舱 -->
+                <rect x="40" y="20" width="40" height="20" fill="#455a64" rx="3"/>
+                <!-- 叶片 -->
+                <path d="M60 20 L40 50 L80 50 Z" fill="#2196f3" transform="rotate(0 60 20)"/>
+                <path d="M60 20 L40 50 L80 50 Z" fill="#4caf50" transform="rotate(120 60 20)"/>
+                <path d="M60 20 L40 50 L80 50 Z" fill="#ff9800" transform="rotate(240 60 20)"/>
+            </svg>
+        </div>
+        
+        <div class="wind-turbine-image">
+            <svg viewBox="0 0 120 180" fill="#2196f3">
+                <!-- 塔架 -->
+                <rect x="55" y="30" width="10" height="130" fill="#78909c" rx="2"/>
+                <!-- 发电机舱 -->
+                <rect x="45" y="30" width="30" height="15" fill="#546e7a" rx="2"/>
+                <!-- 叶片 -->
+                <path d="M60 30 L45 55 L75 55 Z" fill="#4caf50"/>
+                <path d="M60 30 L45 55 L75 55 Z" fill="#ff9800" transform="rotate(120 60 30)"/>
+                <path d="M60 30 L45 55 L75 55 Z" fill="#2196f3" transform="rotate(240 60 30)"/>
+            </svg>
+        </div>
+        
+        <!-- 低空无人机图片 -->
+        <div class="drone-image">
+            <svg viewBox="0 0 80 80" fill="#607d8b">
+                <!-- 主体 -->
+                <circle cx="40" cy="40" r="25" fill="#455a64"/>
+                <circle cx="40" cy="40" r="15" fill="#37474f"/>
+                <!-- 螺旋桨臂 -->
+                <rect x="35" y="10" width="10" height="6" rx="2" fill="#78909c"/>
+                <rect x="35" y="64" width="10" height="6" rx="2" fill="#78909c"/>
+                <rect x="10" y="35" width="6" height="10" rx="2" fill="#78909c"/>
+                <rect x="64" y="35" width="6" height="10" rx="2" fill="#78909c"/>
+                <!-- 螺旋桨 -->
+                <circle cx="40" cy="13" r="4" fill="#90a4ae"/>
+                <circle cx="40" cy="67" r="4" fill="#90a4ae"/>
+                <circle cx="13" cy="40" r="4" fill="#90a4ae"/>
+                <circle cx="67" cy="40" r="4" fill="#90a4ae"/>
+            </svg>
+        </div>
+        
+        <div class="drone-image">
+            <svg viewBox="0 0 80 80" fill="#546e7a">
+                <!-- 主体 -->
+                <circle cx="40" cy="40" r="20" fill="#37474f"/>
+                <circle cx="40" cy="40" r="12" fill="#263238"/>
+                <!-- 螺旋桨臂 -->
+                <rect x="37" y="15" width="6" height="5" rx="1" fill="#607d8b"/>
+                <rect x="37" y="60" width="6" height="5" rx="1" fill="#607d8b"/>
+                <rect x="15" y="37" width="5" height="6" rx="1" fill="#607d8b"/>
+                <rect x="60" y="37" width="5" height="6" rx="1" fill="#607d8b"/>
+                <!-- 螺旋桨 -->
+                <circle cx="40" cy="17" r="3" fill="#78909c"/>
+                <circle cx="40" cy="63" r="3" fill="#78909c"/>
+                <circle cx="17" cy="40" r="3" fill="#78909c"/>
+                <circle cx="63" cy="40" r="3" fill="#78909c"/>
+            </svg>
+        </div>
+    </div>
+    
+    <!-- 访问人数记录 -->
+    <div class="visitor-counter" id="visitorCounter">
+        <i class="fas fa-users"></i>
+        <span>访问人数: <span id="visitorCount">0</span></span>
+    </div>
+    
+    <!-- 风力发电和低空经济背景元素 -->
+    <div class="wind-turbine">
+        <svg viewBox="0 0 60 120" fill="#4caf50">
+            <rect x="28" y="0" width="4" height="100" rx="2"/>
+            <path d="M30 0 L10 40 L50 40 Z" fill="#2196f3"/>
+            <path d="M30 100 L10 60 L50 60 Z" fill="#ff9800"/>
+        </svg>
+    </div>
+    <div class="wind-turbine">
+        <svg viewBox="0 0 60 120" fill="#2196f3">
+            <rect x="28" y="0" width="4" height="100" rx="2"/>
+            <path d="M30 0 L10 40 L50 40 Z" fill="#4caf50"/>
+            <path d="M30 100 L10 60 L50 60 Z" fill="#ff9800"/>
+        </svg>
+    </div>
+    <div class="wind-turbine">
+        <svg viewBox="0 0 60 120" fill="#ff9800">
+            <rect x="28" y="0" width="4" height="100" rx="2"/>
+            <path d="M30 0 L10 40 L50 40 Z" fill="#2196f3"/>
+            <path d="M30 100 L10 60 L50 60 Z" fill="#4caf50"/>
+        </svg>
+    </div>
+    
+    <div class="drone">
+        <svg viewBox="0 0 40 40" fill="#607d8b">
+            <circle cx="20" cy="20" r="15" fill="#78909c"/>
+            <circle cx="20" cy="20" r="8" fill="#455a64"/>
+            <rect x="15" y="5" width="10" height="4" rx="2" fill="#90a4ae"/>
+            <rect x="15" y="31" width="10" height="4" rx="2" fill="#90a4ae"/>
+            <rect x="5" y="15" width="4" height="10" rx="2" fill="#90a4ae"/>
+            <rect x="31" y="15" width="4" height="10" rx="2" fill="#90a4ae"/>
+        </svg>
+    </div>
+    <div class="drone">
+        <svg viewBox="0 0 40 40" fill="#546e7a">
+            <circle cx="20" cy="20" r="15" fill="#607d8b"/>
+            <circle cx="20" cy="20" r="8" fill="#37474f"/>
+            <rect x="15" y="5" width="10" height="4" rx="2" fill="#78909c"/>
+            <rect x="15" y="31" width="10" height="4" rx="2" fill="#78909c"/>
+            <rect x="5" y="15" width="4" height="10" rx="2" fill="#78909c"/>
+            <rect x="31" y="15" width="4" height="10" rx="2" fill="#78909c"/>
+        </svg>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-wind"></i> 台风风廓线模型参数查询系统</h1>
+                <p>基于中国东南部对流层低层 (0–2000 m) 台风风速剖面模型研究</p>
+                <div class="theme-tags">
+                    <span class="theme-text"><i class="fas fa-fan wind-energy-icon"></i> <strong>风力发电应用</strong></span>
+                    <span class="theme-text"><i class="fas fa-drone drone-icon"></i> <strong>低空经济优化</strong></span>
+                    <span class="theme-text"><i class="fas fa-chart-line"></i> <strong>风能预测</strong></span>
+                    <span class="theme-text"><i class="fas fa-cloud"></i> <strong>气象服务</strong></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content">
+
+            
+            <div class="query-section">
+                <div class="section-header" style="margin-bottom: 20px;">
+                    <h2 style="display: inline-block; margin: 0; padding: 10px 20px; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; border-radius: 30px; box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);">
+                        <i class="fas fa-search" style="margin-right: 10px;"></i>风廓线参数查询
+                    </h2>
+                </div>
+                
+                <div class="query-type">
+                    <div class="query-tab active" data-tab="distance">
+                        <i class="fas fa-map-marker-alt"></i> 按台风距离查询
+                    </div>
+                    <div class="query-tab" data-tab="landcover">
+                        <i class="fas fa-leaf"></i> 按地表覆盖类型查询
+                    </div>
+                </div>
+                
+                <div id="distanceForm" class="query-form active">
+                    <div class="form-group">
+                        <div class="form-item">
+                            <label for="profileType">风廓线类型</label>
+                            <select id="profileType">
+                                <option value="">请选择风廓线类型</option>
+                                <option value="Increasing">Increasing（增长型）</option>
+                                <option value="Near-Vertical">Near-Vertical（近垂直型）</option>
+                                <option value="Inverted-C">Inverted-C（反C型）</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-item">
+                            <label for="distanceRange">距离台风中心范围 (km)</label>
+                            <select id="distanceRange">
+                                <option value="">请选择距离范围</option>
+                                <option value="0-100">0-100 km（台风眼壁附近）</option>
+                                <option value="100-200">100-200 km（强风区）</option>
+                                <option value="200-300">200-300 km（外围风区）</option>
+                                <option value="300-400">300-400 km（外围风区）</option>
+                                <option value="400-500">400-500 km（外围风区）</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-item">
+                            <label for="landingStatus">登陆状态</label>
+                            <select id="landingStatus">
+                                <option value="">请选择登陆状态</option>
+                                <option value="Before landing">登陆前 (Before landing)</option>
+                                <option value="After landing">登陆后 (After landing)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="data-source">
+                        <strong>数据来源说明：</strong><br>
+                        本系统参数基于中国沿海地区2020年至2024年台风极端条件统计：
+                        - 风廓线雷达数据来源于中国气象局气象大数据云平台（天擎系统）
+                        - 台风路径信息来源于中国气象局热带气旋资料中心
+                    </div>
+                    
+                    <button onclick="queryParametersByDistance()">查询模型参数</button>
+                </div>
+                
+                <div id="landcoverForm" class="query-form">
+                    <div class="form-group">
+                        <div class="form-item">
+                            <label for="profileTypeLandcover">风廓线类型</label>
+                            <select id="profileTypeLandcover">
+                                <option value="">请选择风廓线类型</option>
+                                <option value="Increasing">Increasing（增长型）</option>
+                                <option value="Near-Vertical">Near-Vertical（近垂直型）</option>
+                                <option value="Inverted-C">Inverted-C（反C型）</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-item">
+                            <label for="landcoverType">地表覆盖类型</label>
+                            <select id="landcoverType">
+                                <option value="">请选择地表覆盖类型</option>
+                                <option value="Water body">水体 (Water body)</option>
+                                <option value="Grassland">草地 (Grassland)</option>
+                                <option value="Herbaceous cover">草本覆盖 (Herbaceous cover)</option>
+                                <option value="Irrigated cropland">灌溉农田 (Irrigated cropland)</option>
+                                <option value="Rainfed cropland">雨养农田 (Rainfed cropland)</option>
+                                <option value="Wetlands">湿地 (Wetlands)</option>
+                                <option value="Evergreen shrubland">常绿灌木地 (Evergreen shrubland)</option>
+                                <option value="Impervious surfaces">不透水表面 (Impervious surfaces)</option>
+                                <option value="Closed evergreen forest">常绿阔叶林 (Closed evergreen forest)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="data-source">
+                        <strong>数据来源说明：</strong><br>
+                        本系统参数基于中国沿海地区2020年至2024年台风极端条件统计：
+                        - 风廓线雷达数据来源于中国气象局气象大数据云平台（天擎系统）
+                        - 台风路径信息来源于中国气象局热带气旋资料中心
+                        - 地表覆盖类型基于中国科学院空天信息创新研究院发布的2020年全球30米分辨率地表覆盖分类产品
+                    </div>
+                    
+                    <button onclick="queryParametersByLandcover()">查询模型参数</button>
+                </div>
+            </div>
+            
+            <div id="resultSection" class="result-section">
+                <div style="margin-bottom: 20px;">
+                    <h2 style="display: inline-block; margin: 0; padding: 10px 20px; background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; border-radius: 30px; box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);">
+                        <i class="fas fa-poll" style="margin-right: 10px;"></i>查询结果
+                    </h2>
+                </div>
+                <div id="resultContent"></div>
+            </div>
+            
+            <!-- 建筑结构荷载规范参考表（默认隐藏） -->
+            <div id="gb50009Table" class="reference-section" style="margin-top: 30px; display: none;">
+                <div class="section-header">
+                    <div style="margin-bottom: 20px;">
+                        <h2 style="display: inline-block; margin: 0; padding: 10px 20px; background: linear-gradient(135deg, #ff9800 0%, #fb8c00 100%); color: white; border-radius: 30px; box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);">
+                            <i class="fas fa-book" style="margin-right: 10px;"></i>建筑结构荷载规范参考
+                        </h2>
+                    </div>
+                </div>
+                
+                <div class="formula-section">
+                    <div class="formula-title">Power Law模型风廓线指数α推荐值</div>
+                    <p><strong>规范来源：</strong>中华人民共和国住房和城乡建设部. 建筑结构荷载规范 GB 50009-2012[S]. 北京: 中国建筑工业出版社, 2012.</p>
+                    
+                    <div style="overflow-x: auto; margin: 20px 0;">
+                        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 25px rgba(255, 152, 0, 0.1);">
+                            <thead>
+                                <tr style="background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%); color: white;">
+                                    <th style="padding: 15px; text-align: center; font-weight: 600; border: none;">粗糙度类别</th>
+                                    <th style="padding: 15px; text-align: center; font-weight: 600; border: none;">地表类型描述</th>
+                                    <th style="padding: 15px; text-align: center; font-weight: 600; border: none;">风廓线指数α</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background: #fff9e6; transition: all 0.3s ease;">
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid rgba(255, 152, 0, 0.1); font-weight: 600;">A</td>
+                                    <td style="padding: 12px; border-bottom: 1px solid rgba(255, 152, 0, 0.1);">近海海面、海岛、海岸、湖岸及沙漠地区</td>
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid rgba(255, 152, 0, 0.1); color: #e74c3c; font-weight: 600;">0.12</td>
+                                </tr>
+                                <tr style="background: #fff3e0; transition: all 0.3s ease;">
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid rgba(255, 152, 0, 0.1); font-weight: 600;">B</td>
+                                    <td style="padding: 12px; border-bottom: 1px solid rgba(255, 152, 0, 0.1);">田野、乡村、丛林、丘陵及房屋比较稀疏的乡镇和城市郊区</td>
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid rgba(255, 152, 0, 0.1); color: #e74c3c; font-weight: 600;">0.15</td>
+                                </tr>
+                                <tr style="background: #fff9e6; transition: all 0.3s ease;">
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid rgba(255, 152, 0, 0.1); font-weight: 600;">C</td>
+                                    <td style="padding: 12px; border-bottom: 1px solid rgba(255, 152, 0, 0.1);">有密集建筑群的城市市区</td>
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid rgba(255, 152, 0, 0.1); color: #e74c3c; font-weight: 600;">0.22</td>
+                                </tr>
+                                <tr style="background: #fff3e0; transition: all 0.3s ease;">
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid rgba(255, 152, 0, 0.1); font-weight: 600;">D</td>
+                                    <td style="padding: 12px; border-bottom: 1px solid rgba(255, 152, 0, 0.1);">有密集建筑群且房屋较高的城市市区</td>
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid rgba(255, 152, 0, 0.1); color: #e74c3c; font-weight: 600;">0.30</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script>
+        // 风廓线模型参数数据库 - 按距离范围
+        const windProfileDataByDistance = {
+            "Increasing": {
+                "model": "Power Law model",
+                "formula": {
+                    "expression": "ū = u<sub>ref</sub> × (z/z<sub>ref</sub>)<sup>α</sup>",
+                    "explanation": "其中：ū为平均风速，u<sub>ref</sub>为参考高度风速，z为测量高度，z<sub>ref</sub>为参考高度，α为风廓线指数"
+                },
+                "parameters": ["α"],
+                "data": {
+                    "0-100": {
+                        "Before landing": {"α": "0.17±0.07"},
+                        "After landing": {"α": "0.19±0.07"}
+                    },
+                    "100-200": {
+                        "Before landing": {"α": "0.22±0.08"},
+                        "After landing": {"α": "0.24±0.1"}
+                    },
+                    "200-300": {
+                        "Before landing": {"α": "0.24±0.11"},
+                        "After landing": {"α": "0.24±0.11"}
+                    },
+                    "300-400": {
+                        "Before landing": {"α": "0.26±0.12"},
+                        "After landing": {"α": "0.24±0.11"}
+                    },
+                    "400-500": {
+                        "Before landing": {"α": "0.27±0.13"},
+                        "After landing": {"α": "0.23±0.11"}
+                    }
+                }
+            },
+            "Near-Vertical": {
+                "model": "Power Law model",
+                "formula": {
+                    "expression": "ū = u<sub>ref</sub> × (z/z<sub>ref</sub>)<sup>α</sup>",
+                    "explanation": "其中：ū为平均风速，u<sub>ref</sub>为参考高度风速，z为测量高度，z<sub>ref</sub>为参考高度，α为风廓线指数"
+                },
+                "parameters": ["α"],
+                "data": {
+                    "0-100": {
+                        "Before landing": {"α": "0.06±0.02"},
+                        "After landing": {"α": "0.06±0.02"}
+                    },
+                    "100-200": {
+                        "Before landing": {"α": "0.08±0.01"},
+                        "After landing": {"α": "0.08±0.03"}
+                    },
+                    "200-300": {
+                        "Before landing": {"α": "0.08±0.03"},
+                        "After landing": {"α": "0.06±0.02"}
+                    },
+                    "300-400": {
+                        "Before landing": {"α": "0.07±0.03"},
+                        "After landing": {"α": "0.08±0.03"}
+                    },
+                    "400-500": {
+                        "Before landing": {"α": "0.07±0.02"},
+                        "After landing": {"α": "0.07±0.02"}
+                    }
+                }
+            },
+            "Inverted-C": {
+                "model": "Vickery model",
+                "formula": {
+                    "expression": "ū = (u<sub>*</sub>/κ) × [ln(z/z<sub>0</sub>) - a × (z/H<sup>*</sup>)<sup>n</sup>]",
+                    "explanation": "其中：ū为平均风速，u<sub>*</sub>为摩擦速度，κ为卡门常数，z为高度，z<sub>0</sub>为粗糙度长度，a、n为模型参数，H<sup>*</sup>为特征高度"
+                },
+                "parameters": ["a", "n"],
+                "data": {
+                    "0-100": {
+                        "Before landing": {
+                            "a": "0.40±0.34",
+                            "n": "2.49±1.18"
+                        },
+                        "After landing": {
+                            "a": "0.26±0.20",
+                            "n": "2.96±0.90"
+                        }
+                    },
+                    "100-200": {
+                        "Before landing": {
+                            "a": "0.40±0.30",
+                            "n": "2.52±1.09"
+                        },
+                        "After landing": {
+                            "a": "0.39±0.30",
+                            "n": "2.56±1.17"
+                        }
+                    },
+                    "200-300": {
+                        "Before landing": {
+                            "a": "0.36±0.30",
+                            "n": "2.58±1.04"
+                        },
+                        "After landing": {
+                            "a": "0.34±0.31",
+                            "n": "2.95±1.17"
+                        }
+                    },
+                    "300-400": {
+                        "Before landing": {
+                            "a": "0.36±0.21",
+                            "n": "2.75±1.03"
+                        },
+                        "After landing": {
+                            "a": "0.38±0.40",
+                            "n": "2.93±1.17"
+                        }
+                    },
+                    "400-500": {
+                        "Before landing": {
+                            "a": "0.42±0.35",
+                            "n": "2.84±1.25"
+                        },
+                        "After landing": {
+                            "a": "0.37±0.41",
+                            "n": "3.09±1.21"
+                        }
+                    }
+                }
+            }
+        };
+
+        // 风廓线模型参数数据库 - 按地表覆盖类型
+        const windProfileDataByLandcover = {
+            "Increasing": {
+                "model": "Power Law model",
+                "formula": {
+                    "expression": "ū = u<sub>ref</sub> × (z/z<sub>ref</sub>)<sup>α</sup>",
+                    "explanation": "其中：ū为平均风速，u<sub>ref</sub>为参考高度风速，z为测量高度，z<sub>ref</sub>为参考高度，α为风廓线指数"
+                },
+                "parameters": ["α"],
+                "data": {
+                    "Water body": {"α": "0.19±0.09"},
+                    "Grassland": {"α": "0.18±0.05"},
+                    "Herbaceous cover": {"α": "0.21±0.08"},
+                    "Irrigated cropland": {"α": "0.23±0.11"},
+                    "Rainfed cropland": {"α": "0.28±0.12"},
+                    "Wetlands": {"α": "0.28±0.08"},
+                    "Evergreen shrubland": {"α": "0.20±0.10"},
+                    "Impervious surfaces": {"α": "0.24±0.11"},
+                    "Closed evergreen forest": {"α": "0.29±0.10"}
+                }
+            },
+            "Near-Vertical": {
+                "model": "Power Law model",
+                "formula": {
+                    "expression": "ū = u<sub>ref</sub> × (z/z<sub>ref</sub>)<sup>α</sup>",
+                    "explanation": "其中：ū为平均风速，u<sub>ref</sub>为参考高度风速，z为测量高度，z<sub>ref</sub>为参考高度，α为风廓线指数"
+                },
+                "parameters": ["α"],
+                "data": {
+                    "Water body": {"α": "0.09±0.09"},
+                    "Irrigated cropland": {"α": "0.07±0.07"},
+                    "Rainfed cropland": {"α": "0.07±0.08"},
+                    "Impervious surfaces": {"α": "0.09±0.08"},
+                    "Closed evergreen forest": {"α": "0.06±0.06"}
+                }
+            },
+            "Inverted-C": {
+                "model": "Vickery model",
+                "formula": {
+                    "expression": "ū = (u<sub>*</sub>/κ) × [ln(z/z<sub>0</sub>) - a × (z/H<sup>*</sup>)<sup>n</sup>]",
+                    "explanation": "其中：ū为平均风速，u<sub>*</sub>为摩擦速度，κ为卡门常数，z为高度，z<sub>0</sub>为粗糙度长度，a、n为模型参数，H<sup>*</sup>为特征高度"
+                },
+                "parameters": ["a", "n"],
+                "data": {
+                    "Water body": {
+                        "a": "0.47±0.49",
+                        "n": "2.89±1.40"
+                    },
+                    "Irrigated cropland": {
+                        "a": "0.35±0.28",
+                        "n": "2.83±1.13"
+                    },
+                    "Rainfed cropland": {
+                        "a": "0.35±0.37",
+                        "n": "3.14±1.40"
+                    },
+                    "Wetlands": {
+                        "a": "0.28±0.16",
+                        "n": "3.11±1.09"
+                    },
+                    "Evergreen shrubland": {
+                        "a": "0.50±0.49",
+                        "n": "2.53±1.25"
+                    },
+                    "Impervious surfaces": {
+                        "a": "0.32±0.24",
+                        "n": "2.80±0.99"
+                    }
+                }
+            }
+        };
+
+        // 查询标签切换
+        document.querySelectorAll('.query-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // 移除所有活动状态
+                document.querySelectorAll('.query-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.query-form').forEach(f => f.classList.remove('active'));
+                
+                // 添加当前活动状态
+                this.classList.add('active');
+                document.getElementById(this.dataset.tab + 'Form').classList.add('active');
+            });
+        });
+
+        function queryParametersByDistance() {
+            const profileType = document.getElementById('profileType').value;
+            const distanceRange = document.getElementById('distanceRange').value;
+            const landingStatus = document.getElementById('landingStatus').value;
+            const resultSection = document.getElementById('resultSection');
+            const resultContent = document.getElementById('resultContent');
+            
+            // 验证输入
+            if (!profileType || !distanceRange || !landingStatus) {
+                alert('请选择所有查询条件！');
+                return;
+            }
+            
+            // 获取数据
+            const profileData = windProfileDataByDistance[profileType];
+            if (!profileData) {
+                resultContent.innerHTML = '<div class="no-data">未找到对应的风廓线类型数据</div>';
+                resultSection.style.display = 'block';
+                return;
+            }
+            
+            const rangeData = profileData.data[distanceRange];
+            if (!rangeData) {
+                resultContent.innerHTML = '<div class="no-data">未找到对应距离范围的数据</div>';
+                resultSection.style.display = 'block';
+                return;
+            }
+            
+            const parameters = rangeData[landingStatus];
+            if (!parameters) {
+                resultContent.innerHTML = '<div class="no-data">未找到对应登陆状态的数据</div>';
+                resultSection.style.display = 'block';
+                return;
+            }
+            
+            // 显示结果
+            displayResults(profileType, profileData, parameters, 
+                          `距离范围：${distanceRange} km，登陆状态：${landingStatus}`);
+            
+            resultSection.style.display = 'block';
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function queryParametersByLandcover() {
+            const profileType = document.getElementById('profileTypeLandcover').value;
+            const landcoverType = document.getElementById('landcoverType').value;
+            const resultSection = document.getElementById('resultSection');
+            const resultContent = document.getElementById('resultContent');
+            
+            // 验证输入
+            if (!profileType || !landcoverType) {
+                alert('请选择所有查询条件！');
+                return;
+            }
+            
+            // 获取数据
+            const profileData = windProfileDataByLandcover[profileType];
+            if (!profileData) {
+                resultContent.innerHTML = '<div class="no-data">未找到对应的风廓线类型数据</div>';
+                resultSection.style.display = 'block';
+                return;
+            }
+            
+            const parameters = profileData.data[landcoverType];
+            if (!parameters) {
+                resultContent.innerHTML = '<div class="no-data">未找到对应地表覆盖类型的数据</div>';
+                resultSection.style.display = 'block';
+                return;
+            }
+            
+            // 显示结果
+            displayResults(profileType, profileData, parameters, 
+                          `地表覆盖类型：${landcoverType}`);
+            
+            resultSection.style.display = 'block';
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function displayResults(profileType, profileData, parameters, conditionInfo) {
+            const resultContent = document.getElementById('resultContent');
+            const gb50009Table = document.getElementById('gb50009Table');
+            
+            // 控制规范参考表的显示/隐藏
+            if (profileType === "Increasing" || profileType === "Near-Vertical") {
+                gb50009Table.style.display = 'block';
+            } else if (profileType === "Inverted-C") {
+                gb50009Table.style.display = 'none';
+            } else {
+                gb50009Table.style.display = 'none';
+            }
+            
+            let html = `
+                <div class="model-info">
+                    <h3>模型信息</h3>
+                    <p><strong>风廓线类型：</strong>${profileType}</p>
+                    <p><strong>适用模型：</strong>${profileData.model}</p>
+                    <p><strong>查询条件：</strong>${conditionInfo}</p>
+                </div>
+                
+                <div class="formula-section">
+                    <div class="formula-title">风廓线模型公式：</div>
+                    <div class="formula">${profileData.formula.expression}</div>
+                    <div class="formula-explanation">${profileData.formula.explanation}</div>
+                </div>
+                
+                <h3>模型参数 (mean±std)</h3>
+                <div class="parameter-grid">
+            `;
+            
+            profileData.parameters.forEach(param => {
+                if (parameters[param]) {
+                    html += `
+                        <div class="parameter-card">
+                            <div class="parameter-name">${param}</div>
+                            <div class="parameter-value">${parameters[param]}</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += '</div>';
+            
+            // 如果是Inverted-C类型，添加参考文献推荐值
+            if (profileType === "Inverted-C") {
+                html += `
+                    <div class="reference-section">
+                        <div class="reference-title">参考文献推荐值 (Vickery et al., 2009):</div>
+                        <p>在Vickery等人(2009)的研究中，对于Inverted-C类型的Vickery模型，推荐参数值为：</p>
+                        <p><strong>a = 0.4, n = 2.0</strong></p>
+                    </div>
+                `;
+            }
+            
+            resultContent.innerHTML = html;
+        }
+        
+
+        
+        // 添加键盘事件支持
+        document.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                const activeForm = document.querySelector('.query-form.active');
+                if (activeForm.id === 'distanceForm') {
+                    queryParametersByDistance();
+                } else {
+                    queryParametersByLandcover();
+                }
+            }
+        });
+        
+        // 访问次数记录功能
+        function initVisitorCounter() {
+            // 检查是否是从二维码跳转过来的（通过URL参数或localStorage标记）
+            const urlParams = new URLSearchParams(window.location.search);
+            const isFromQR = urlParams.get('qr') === '1' || localStorage.getItem('typhoon_wind_profile_qr_visit') === 'true';
+            
+            if (isFromQR) {
+                // 如果是二维码访问，使用二维码访问时间作为会话开始时间
+                const qrTime = localStorage.getItem('typhoon_wind_profile_qr_time');
+                if (qrTime) {
+                    localStorage.setItem('typhoon_wind_profile_session_start', qrTime);
+                    console.log('使用二维码访问时间作为会话开始时间');
+                }
+                // 清除二维码标记
+                localStorage.removeItem('typhoon_wind_profile_qr_visit');
+                localStorage.removeItem('typhoon_wind_profile_qr_time');
+            } else {
+                // 直接访问，设置新的会话开始时间
+                localStorage.setItem('typhoon_wind_profile_session_start', Date.now().toString());
+                console.log('设置新的会话开始时间（直接访问）');
+            }
+            
+            // 设置5秒后检查停留时间
+            setTimeout(checkVisitDuration, 5000);
+            
+            // 显示当前访问次数
+            const visitCount = localStorage.getItem('typhoon_wind_profile_visits') || '0';
+            const visitorElement = document.getElementById('visitorCount');
+            if (visitorElement) {
+                animateCounter(visitorElement, 0, parseInt(visitCount), 2000);
+            }
+        }
+        
+        // 检查停留时间
+        function checkVisitDuration() {
+            const sessionStart = localStorage.getItem('typhoon_wind_profile_session_start');
+            
+            if (!sessionStart) {
+                return; // 没有会话开始时间
+            }
+            
+            const currentTime = Date.now();
+            const duration = currentTime - parseInt(sessionStart);
+            
+            // 如果停留时间超过5秒，记录为一次访问
+            if (duration >= 5000) {
+                recordVisit();
+            }
+        }
+        
+        // 记录访问
+        function recordVisit() {
+            let visitCount = localStorage.getItem('typhoon_wind_profile_visits');
+            
+            if (!visitCount) {
+                visitCount = 1;
+            } else {
+                visitCount = parseInt(visitCount) + 1;
+            }
+            
+            localStorage.setItem('typhoon_wind_profile_visits', visitCount.toString());
+            localStorage.setItem('typhoon_wind_profile_last_visit', new Date().toDateString());
+            
+            // 更新显示
+            const visitorElement = document.getElementById('visitorCount');
+            if (visitorElement) {
+                animateCounter(visitorElement, 0, parseInt(visitCount), 2000);
+            }
+            
+            console.log(`访问已记录，当前访问次数: ${visitCount}`);
+        }
+        
+        // 数字动画效果
+        function animateCounter(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.textContent = formatNumber(value);
+                
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+        
+        // 格式化数字（添加千分位分隔符）
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        // 页面加载完成后初始化访问人数
+        document.addEventListener('DOMContentLoaded', function() {
+            initVisitorCounter();
+            
+            // 添加访问人数计数器点击事件（显示详细信息）
+            const visitorCounter = document.getElementById('visitorCounter');
+            if (visitorCounter) {
+                visitorCounter.addEventListener('click', function() {
+                    const visitorCount = localStorage.getItem('typhoon_wind_profile_visits');
+                    const lastVisit = localStorage.getItem('typhoon_wind_profile_last_visit');
+                    
+                    alert(`台风风廓线模型参数查询系统\n\n` +
+                          `总访问人数: ${formatNumber(parseInt(visitorCount))}\n` +
+                          `最后访问时间: ${lastVisit || '今天'}\n\n` +
+                          `感谢您的访问！`);
+                });
+            }
+        });
+    </script>
+    
+    <!-- 联系方式 -->
+    <style>
+        .contact-info {
+            background: rgba(44, 62, 80, 0.9);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-top: 40px;
+            border-top: 2px solid #4caf50;
+        }
+        
+        .contact-info h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            color: #4caf50;
+        }
+        
+        .contact-email {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            display: inline-block;
+        }
+        
+        .contact-label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
+</body>
+
+<!-- 联系方式 -->
+<div class="contact-info">
+    <h3><i class="fas fa-envelope"></i> 联系方式</h3>
+    <div class="contact-email">
+        <span class="contact-label">汤胜茗：</span>tangsm@typhoon.org.cn
+    </div>
+    <div class="contact-email">
+        <span class="contact-label">李玉辉：</span>52273901008@stu.ecnu.edu.cn
+    </div>
+</div>
+
+</html>
