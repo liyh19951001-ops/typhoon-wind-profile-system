@@ -49,14 +49,17 @@
         }
 
         /* =========================================
-           2. 页面布局与 Header (使用本地图片做背景)
+           2. 页面布局与 Header (使用 GitHub 绝对路径背景)
            ========================================= */
         .navbar {
             background-color: var(--primary-color);
-            /* 叠加深色渐变层以保证文字清晰度，底层为你的本地图 Image.png */
+            /* 这里使用了你在 GitHub 上的绝对原始链接。
+               只要你把 Image.jpg 上传到了仓库的最外面（根目录），它就会100%显示。
+               注意大小写：Image.jpg 
+            */
             background-image: 
                 linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 58, 138, 0.8) 100%),
-                url("./Image.png");
+                url("https://raw.githubusercontent.com/liyh19951001-ops/typhoon-wind-profile-system/main/Image.jpg");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
